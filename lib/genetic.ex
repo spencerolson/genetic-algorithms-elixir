@@ -6,12 +6,12 @@ defmodule Genetic do
     for _ <- 1..population_size, do: genotype.()
   end
 
-  def evaluate(population, fitness_function, _opts \\ []) do
+  def evaluate(population, generation, fitness_function, _opts \\ []) do
     population
     |> Enum.map(
       fn chromosome ->
         fitness = fitness_function.(chromosome)
-        age = chromosome.age + 1
+        age = if generation == 0, do: chromosome.age, else: chromosome.age + 1
         %Chromosome{chromosome | fitness: fitness, age: age}
       end
     )
@@ -20,8 +20,8 @@ defmodule Genetic do
 
   def select(population, _opts \\ []) do
     population
-    |> Enum.chunk_every(2)
-    |> Enum.map(&List.to_tuple(&1))
+      |> Enum.chunk_every(2)
+      |> Enum.map(&List.to_tuple(&1))
   end
 
   def crossover(population, _opts \\ []) do
@@ -54,27 +54,26 @@ defmodule Genetic do
   end
 
   def run(problem, opts \\ []) do
-    population = initialize(&problem.genotype/0)
-    first_generation = 0
+    population = initialize(&problem.genotype/0, opts)
 
     population
-    |> evolve(problem, first_generation, opts)
+    |> evolve(problem, 0, 0, 100, opts)
   end
 
-  def evolve(population, problem, generation, opts \\ []) do
-    population = evaluate(population, &problem.fitness_function/1, opts)
+  def evolve(population, problem, generation, last_max_fitness, temperature, opts \\ []) do
+    population = evaluate(population, generation, &problem.fitness_function/1, opts)
     best = hd(population)
-    IO.write("\rCurrent Best: #{problem.fitness_function(best)}")
-    if problem.terminate?(population, generation) do
+    best_fitness = best.fitness
+    temperature = 0.9 * (temperature + (best_fitness - last_max_fitness))
+    IO.write("\rCurrent Best: #{problem.fitness_function(best)}, temp: #{temperature}")
+    if problem.terminate?(population, generation, temperature) do
       best
     else
-      generation = generation + 1
-
       population
-      |> select(opts)
-      |> crossover(opts)
-      |> mutation(opts)
-      |> evolve(problem, generation, opts)
+        |> select(opts)
+        |> crossover(opts)
+        |> mutation(opts)
+        |> evolve(problem, generation + 1, best_fitness, temperature, opts)
     end
   end
 end

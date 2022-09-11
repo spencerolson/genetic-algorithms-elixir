@@ -5,23 +5,25 @@ defmodule Speller do
   @impl true
   def genotype do
     genes = Stream.repeatedly(fn -> Enum.random(?a..?z) end)
-      |> Enum.take(6)
+      |> Enum.take(34)
 
-    %Chromosome{genes: genes, size: 6}
+    %Chromosome{genes: genes, size: 34}
   end
 
   @impl true
   def fitness_function(chromosome) do
-    target = "sekrit"
+    target = "supercalifragilisticexpialidocious"
     guess = List.to_string(chromosome.genes)
     String.jaro_distance(target, guess)
   end
 
   @impl true
-  def terminate?(_population, generation), do: generation == 100
+  def terminate?(_population, _generation, temperature) do
+    temperature < 0.01
+  end
 end
 
-solution = Genetic.run(Speller)
+solution = Genetic.run(Speller, population_size: 1000)
 IO.write("\n")
 IO.inspect(solution)
 
