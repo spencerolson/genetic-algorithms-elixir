@@ -18,10 +18,11 @@ defmodule Genetic do
     |> Enum.sort_by(& &1.fitness, &>=/2)
   end
 
-  def select(population, _opts \\ []) do
-    population
-      |> Enum.chunk_every(2)
-      |> Enum.map(&List.to_tuple(&1))
+  def select(population, opts \\ []) do
+    select_fn = Keyword.get(opts, :selection_type, &Toolbox.Selection.elite/2)
+    _parents =
+      select_fn
+      |> apply([population, opts])
   end
 
   def crossover(population, _opts \\ []) do
